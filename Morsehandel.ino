@@ -8,19 +8,19 @@ int pwm = 11;      // select the pin for pwm
 int reverse = 10;  // select the pin for direction control
 int brake = 12;    // select the pin for braking on motor
 int SensorPin = A0;    // select the input pin for the potentiometer
-// ID of the settings block
+
 #define CONFIG_VERSION "0.1"
 #define SENSOR_AVG_NO 10
 #define DEADBAND 4
 #define CLUTCHIN_OVERSHOOT 10 //in percents of deadslow
 #define SENSORREAD_FREQ_DIV 10 // Gives a reading frequency of 10Hz. (100Hz / 10)
 //enum workaround
-#define REVERSE 0
-#define NEUTRAL 1
-#define FORWARD 2
-#define BRAKE 3
-#define REGENERATING 4
-#define STOPPED 5
+  #define REVERSE 0
+  #define NEUTRAL 1
+  #define FORWARD 2
+  #define BRAKE 3
+  #define REGENERATING 4
+  #define STOPPED 5
 //end enum workaround
 #define DEBUG 1
 
@@ -34,13 +34,14 @@ byte MotorState = STOPPED;
 
 bool SetupMode = false;
 bool ShowSensorValue = false;
+bool busy = false;
 
 typedef struct {
   // This is for mere detection if they are your settings
   char version[4];
   // The variables of your settings
   int AsternFull, AsternDeadSlow, Neutral, ForwardDeadSlow, ForwardFull;
-  int PwmAsternFull, PwmAsternDeadSlow, PwmForwardDeadSlow, PwmForwardFull, ClutchinOvershoot;
+  int PwmAsternFull, PwmAsternDeadSlow, PwmForwardDeadSlow, PwmForwardFull;
   bool AsternSwitch;  
 } config_struct;
 
@@ -48,7 +49,7 @@ config_struct CONFIG = {
   CONFIG_VERSION,
   // The default values
   0, 0, 0, 0, 0,
-  0, 0, 0, 0, 10,
+  0, 0, 0, 0,
   true
 };
 config_struct SET;
@@ -77,8 +78,15 @@ void setup() {
     
     TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
     TCCR2B = _BV(CS22);
-    OCR2A = 180;
-    OCR2B = 50;
+    OCR2A = 0;
+    #ifdef DEBUG
+        Serial.print("Neutral [");Serial.print(CONFIG.Neutral);Serial.println("]");
+        Serial.print("DeadSlow Forward [");Serial.print(CONFIG.ForwardDeadSlow);Serial.println("]");
+        Serial.print("Full Forward [");Serial.print(CONFIG.ForwardFull);Serial.println("]");
+        Serial.print("DeadSlow Astern [");Serial.print(CONFIG.AsternDeadSlow);Serial.println("]");
+        Serial.print("Full Astern [");Serial.print(CONFIG.AsternFull);Serial.println("]");
+    #endif
+
 }
 void SetupTimers()
 {
@@ -99,7 +107,9 @@ void SetupTimers()
 }
 
 ISR(TIMER0_COMPA_vect){
-  // This timer is set at a frequency of 100Hz
+  // This timer is set at a frequency of 100H
+  if (busy) return;
+  busy = true;
   if (StartupTimer >= 0 ){
     if ( ++StartupTimer < 1000 ){
       if( StartupTimer % 100 == 1 ) Serial.print(".");
@@ -120,8 +130,23 @@ ISR(TIMER0_COMPA_vect){
     divcounter=0;
     
     if ( !SetupMode )
-      OCR2A = analogReadDirect()/4;
+      OCR2A = ConvertSensorToPWM(analogReadAvg());
+      #ifdef DEBUG  // serial out the handle position and pwm continous
+          if ( OldValue != abs(analogReadDirect() ) ){
+             Serial.print(char(13)); 
+             Serial.print("handle [");
+             Serial.print(analogReadDirect() );
+             Serial.print("]   pwm[");
+             Serial.print(OCR2A);
+             Serial.print("]    ");
+          }
+      #endif
+    else{
+      OldValue = analogReadDirect();
+      
+    }
   }
+  busy = false;
 }
 
 void loop() {

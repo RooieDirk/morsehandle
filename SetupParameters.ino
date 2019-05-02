@@ -1,10 +1,10 @@
  void SetupParameters()
 {
   if ( toupper(Serial.read()) == 'S')
-    if ( GetInputFromSerial() == 'E')
-      if ( GetInputFromSerial() == 'T')
-        if ( GetInputFromSerial() == 'U')
-          if ( GetInputFromSerial() == 'P')
+    if ( GetInputFromSerial(0) == 'E')
+      if ( GetInputFromSerial(0) == 'T')
+        if ( GetInputFromSerial(0) == 'U')
+          if ( GetInputFromSerial(0) == 'P')
           {
             StartupTimer = -1;
             SetupMode = true;
@@ -35,7 +35,7 @@ int SetupHandlePos()
     Serial.println("Press a key");
     ShowSensorValue = true;
 
-    char inChar = GetInputFromSerial();
+    char inChar = GetInputFromSerial(0);
       switch(inChar){
         case 'A':
           SET.Neutral = analogReadDirect();
@@ -75,7 +75,7 @@ int SetupMotorSpeed()
     Serial.println("Enter, for next");    
     Serial.println("Press a key");
     
-    char inChar = GetInputFromSerial();
+    char inChar = GetInputFromSerial( 0);
  
       switch(inChar){
         case 'F':
@@ -85,10 +85,10 @@ int SetupMotorSpeed()
           SET.PwmAsternDeadSlow = DoSpeedSetting( "Dead-Slow Astern", SET.PwmAsternDeadSlow);
           break;
         case 'H':
-          SET.PwmAsternDeadSlow = DoSpeedSetting( "Full ahead", SET.PwmAsternDeadSlow);
+          SET.PwmForwardFull = DoSpeedSetting( "Full ahead", SET.PwmForwardFull);
           break;
         case 'I':
-          SET.PwmAsternDeadSlow = DoSpeedSetting( "Full Astern", SET.PwmAsternDeadSlow);
+          SET.PwmAsternFull = DoSpeedSetting( "Full Astern", SET.PwmAsternFull);
           break;
       }
       if (inChar == char(27) ) return 0;
@@ -107,7 +107,7 @@ int DoSpeedSetting( String text, int startsetting)
 
   bool loop = true;
   do {  
-      char inChar = GetInputFromSerial(); 
+      char inChar = GetInputFromSerial( &startsetting ); 
       switch(inChar){
         case 'F':
           if ( startsetting < 255 ) startsetting++;
@@ -123,10 +123,10 @@ int DoSpeedSetting( String text, int startsetting)
       }
       if (inChar == char(13) ) loop = false; 
       SetMotorspeed( startsetting, SET.AsternSwitch);
-        Serial.print( char(13) );
-        Serial.print( "[" );
-        Serial.print( startsetting );
-        Serial.print( "]   " ); 
+//        Serial.print( char(13) );
+//        Serial.print( "[" );
+//        Serial.print( startsetting );
+//        Serial.print( "]   " ); 
    }while (loop);
   return startsetting;
 }
@@ -137,18 +137,20 @@ void SetMotorspeed( int pwm_val, bool direction)
   OCR2A = pwm_val;
 }
 
-char GetInputFromSerial()
+char GetInputFromSerial(int* ptr)
 {
   while (Serial.available()) { //clear the input buffer
     Serial.read();}
   while ( Serial.available()<= 0 ) {
-//    if (ShowSensorValue){
-//        Serial.print( char(13) );
-//        Serial.print( "[" );
-//        Serial.print( analogReadDirect() );
-//        Serial.print( "]   " );
-//        delay(50);
-//      }
-      ; } //wait for input
+    if ( ptr != 0 ) PrintValueNoLF(ptr);
+       } //wait for input
     return (char)toupper(Serial.read());
+}
+
+void PrintValueNoLF( int* ptr)
+{ 
+  Serial.print( char(13) );
+  Serial.print( "[" );
+  Serial.print( *ptr );
+  Serial.print( "] " );
 }
