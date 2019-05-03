@@ -3,12 +3,24 @@ int ConvertSensorToPWM(int sensorval)
   if ( abs(sensorval-CONFIG.Neutral) <= DEADBAND ) return 0;
   int DeadSlow_abs, Full_abs, pwmSlow, pwmFull;
   bool GoingForward;
+  if (sensorval < CONFIG.Neutral ){
+    if (CONFIG.ForwardDeadSlow < CONFIG.Neutral)
+      GoingForward = true;
+    else
+      GoingForward = false;
+  }
+  else{  //sensorval > CONFIG.Neutral
+    if (CONFIG.ForwardDeadSlow < CONFIG.Neutral)
+      GoingForward = false;
+    else
+      GoingForward = true;
+  }
+  
   int sensorval_abs = abs(sensorval - CONFIG.Neutral);
-  if ( (sensorval < CONFIG.Neutral ) && (CONFIG.ForwardDeadSlow < CONFIG.Neutral) ) //In forward position
+  if ( GoingForward)
   {
     DeadSlow_abs = abs(CONFIG.ForwardDeadSlow - CONFIG.Neutral);
     Full_abs = abs(CONFIG.ForwardFull - CONFIG.Neutral);
-    GoingForward = true;
     pwmSlow = CONFIG.PwmForwardDeadSlow;
     pwmFull = CONFIG.PwmForwardFull;
   }
@@ -16,7 +28,6 @@ int ConvertSensorToPWM(int sensorval)
   {
     DeadSlow_abs = abs(CONFIG.AsternDeadSlow - CONFIG.Neutral);
     Full_abs = abs(CONFIG.AsternFull - CONFIG.Neutral);
-    GoingForward = false;
     pwmSlow = CONFIG.PwmAsternDeadSlow;
     pwmFull = CONFIG.PwmAsternFull;
   }
@@ -42,10 +53,13 @@ int ConvertSensorToPWM(int sensorval)
 
 void ChangeMotorDirection(bool r)
 {  
-  if( digitalRead(reverse) != r){
+  bool fr;
+  if (r) fr = CONFIG.AsternSwitch;
+  else fr = !CONFIG.AsternSwitch;
+  if( digitalRead(ReversePin) != fr){
     if( MotorState != STOPPED )
       BreakMotor(500); //stop motor and wait 500 ms
-    digitalWrite(reverse, r );
+    digitalWrite(ReversePin, fr );
   }
 }
 
@@ -60,17 +74,17 @@ void StopMotor(int delaytime)
 void BreakMotor(int delaytime)
 { //brake for a given periode of time (ms)
   OCR2A = 0; //set output pwm to nul
-  digitalWrite(brake, 1);
+  digitalWrite(BrakePin, 1);
   MotorState = BRAKE;
   FillAvgArray(0);
   delay( delaytime );
   FillAvgArray(0);
-  digitalWrite(brake, 0);
+  digitalWrite(BrakePin, 0);
   MotorState = STOPPED;  
 }
 
 void SetMotorForward( int pwm_val)
 {
-  digitalWrite(reverse, !CONFIG.AsternSwitch );
+  digitalWrite(ReversePin, !CONFIG.AsternSwitch );
   OCR2A = pwm_val;
 }

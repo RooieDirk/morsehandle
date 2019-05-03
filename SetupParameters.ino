@@ -131,9 +131,9 @@ int DoSpeedSetting( String text, int startsetting)
   return startsetting;
 }
 
-void SetMotorspeed( int pwm_val, bool direction)
+void SetMotorspeed( int pwm_val, bool m_Direction)
 {
-  digitalWrite(reverse, direction );
+  digitalWrite(ReversePin, m_Direction );
   OCR2A = pwm_val;
 }
 

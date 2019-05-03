@@ -4,9 +4,9 @@
 __asm volatile ("nop");
 #endif
 //
-int pwm = 11;      // select the pin for pwm
-int reverse = 10;  // select the pin for direction control
-int brake = 12;    // select the pin for braking on motor
+int PwmPin = 11;      // select the pin for pwm
+int ReversePin = 10;  // select the pin for direction control
+int BrakePin = 12;    // select the pin for braking on motor
 int SensorPin = A0;    // select the input pin for the potentiometer
 
 #define CONFIG_VERSION "0.1"
@@ -22,7 +22,7 @@ int SensorPin = A0;    // select the input pin for the potentiometer
   #define REGENERATING 4
   #define STOPPED 5
 //end enum workaround
-#define DEBUG 1
+#define DEBUG false
 
 int SensorValue[SENSOR_AVG_NO]{0};  // array to store the value coming from the sensor
 byte S_ArrayIndex = 0;
@@ -72,20 +72,20 @@ void setup() {
     FillAvgArray( CONFIG.Neutral );
     Serial.println("Configuration loaded");
   }
-    pinMode(pwm,OUTPUT) ;
-    pinMode(reverse,OUTPUT) ;
-    pinMode(brake,OUTPUT) ;
+    pinMode(PwmPin,OUTPUT) ;
+    pinMode(ReversePin,OUTPUT) ;
+    pinMode(BrakePin,OUTPUT) ;
     
     TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
     TCCR2B = _BV(CS22);
     OCR2A = 0;
-    #ifdef DEBUG
+    if (DEBUG) {
         Serial.print("Neutral [");Serial.print(CONFIG.Neutral);Serial.println("]");
         Serial.print("DeadSlow Forward [");Serial.print(CONFIG.ForwardDeadSlow);Serial.println("]");
         Serial.print("Full Forward [");Serial.print(CONFIG.ForwardFull);Serial.println("]");
         Serial.print("DeadSlow Astern [");Serial.print(CONFIG.AsternDeadSlow);Serial.println("]");
         Serial.print("Full Astern [");Serial.print(CONFIG.AsternFull);Serial.println("]");
-    #endif
+    }
 
 }
 void SetupTimers()
@@ -119,11 +119,11 @@ ISR(TIMER0_COMPA_vect){
       Serial.println("");
       Serial.println("Sorry your time to enter setup is over ;-)");
       Serial.flush();
-      #ifndef DEBUG
+      if( !DEBUG ){
         Serial.println("Closing the serial port");
         Serial.flush();
         Serial.end();
-      #endif
+      }
     }
   }
   if ( divcounter++ == SENSORREAD_FREQ_DIV ){
